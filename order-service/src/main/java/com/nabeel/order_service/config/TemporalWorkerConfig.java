@@ -3,6 +3,7 @@ package com.nabeel.order_service.config;
 import com.nabeel.order_service.temporal.activity.*;
 import com.nabeel.order_service.temporal.activity.OrderStatusUpdateActivityImpl;
 import com.nabeel.order_service.temporal.workflow.TradeOrderWorkflow;
+import com.nabeel.order_service.temporal.workflow.TradeOrderWorkflowImpl;
 import io.temporal.client.WorkflowClient;
 import io.temporal.worker.Worker;
 import io.temporal.worker.WorkerFactory;
@@ -48,7 +49,7 @@ public class TemporalWorkerConfig {
         Worker worker = workerFactory.newWorker(taskQueue);
 
         // Register workflow implementation
-        worker.registerWorkflowImplementationTypes(TradeOrderWorkflow.class);
+        worker.registerWorkflowImplementationTypes(TradeOrderWorkflowImpl.class);
 
         // Register activity implementations
         worker.registerActivitiesImplementations(

@@ -16,7 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 
-@Service
+
 public class TradeOrderWorkflowImpl implements TradeOrderWorkflow{
     private static final Logger LOGGER = LoggerFactory.getLogger(TradeOrderWorkflowImpl.class);
     //order validation activity

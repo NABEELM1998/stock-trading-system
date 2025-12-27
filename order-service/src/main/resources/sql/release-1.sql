@@ -43,7 +43,7 @@ CREATE TABLE orders (
     user_id         BIGINT NOT NULL REFERENCES users(id),
     symbol          VARCHAR(10) NOT NULL,
     side            order_side NOT NULL,
-    quantity        NUMERIC(18, 4) NOT NULL CHECK (quantity > 0),
+    quantity        INTEGER  NOT NULL CHECK (quantity > 0),
     order_type      order_type NOT NULL,
     limit_price     NUMERIC(18, 4),
     status          order_status NOT NULL DEFAULT 'PENDING',
