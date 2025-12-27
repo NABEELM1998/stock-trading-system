@@ -9,7 +9,6 @@ import com.nabeel.order_service.security.UserPrincipal;
 import com.nabeel.order_service.temporal.workflow.TradeOrderWorkflow;
 import io.temporal.client.WorkflowClient;
 import io.temporal.client.WorkflowOptions;
-import io.temporal.client.WorkflowStub;
 import io.temporal.serviceclient.WorkflowServiceStubs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +19,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -77,15 +77,16 @@ public class OrderService {
 
         // Start Temporal workflow
         try {
-            TradeOrderWorkflow workflow = workflowClient.newWorkflowStub(
-                    TradeOrderWorkflow.class,
-                    WorkflowOptions.newBuilder()
-                            .setWorkflowId(workflowId)
-                            .setTaskQueue("order-processing")
-                            .setWorkflowExecutionTimeout(java.time.Duration.ofMinutes(5))
-                            .build());
+            TradeOrderWorkflow workflow =
+                    workflowClient.newWorkflowStub(
+                            TradeOrderWorkflow.class,
+                            WorkflowOptions.newBuilder()
+                                    .setWorkflowId(workflowId)
+                                    .setTaskQueue("order-processing")
+                                    .setWorkflowExecutionTimeout(Duration.ofMinutes(5))
+                                    .build()
+                    );
 
-            // Execute workflow asynchronously
             WorkflowRequest workflowRequest = new WorkflowRequest(
                     order.getOrderId(),
                     order.getUserId(),
@@ -93,12 +94,14 @@ public class OrderService {
                     order.getSide().name(),
                     order.getQuantity(),
                     order.getOrderType().name(),
-                    order.getLimitPrice() != null ? order.getLimitPrice().doubleValue() : null
+                    order.getLimitPrice() // ✅ keep BigDecimal
             );
+            workflowRequest.setOrder(order);
 
-            // Start workflow execution asynchronously
-            WorkflowStub untyped = WorkflowStub.fromTyped(workflow);
-            untyped.start(workflowRequest);
+// ✅ Start asynchronously (non-blocking)
+            WorkflowClient.start(workflow::executeOrder, workflowRequest);
+
+
 
             logger.info("Workflow started for orderId={}, workflowId={}", order.getOrderId(), workflowId);
         } catch (Exception e) {
@@ -128,7 +131,7 @@ public class OrderService {
             try {
                 TradeOrderWorkflow workflow = workflowClient.newWorkflowStub(
                         TradeOrderWorkflow.class, order.getWorkflowId());
-                String workflowStatus = workflow.getStatus();
+                String workflowStatus = "test";
                 // Update order status if workflow status differs
                 if (workflowStatus != null && !workflowStatus.equals(order.getStatus().name())) {
                     try {
@@ -159,18 +162,11 @@ public class OrderService {
         if (isAdmin) {
             // Admin can see all orders
             if (status != null && symbol != null) {
-                orderPage = orderRepository.findAll(pageable);
-                // Filter manually for admin (you might want to add admin-specific queries)
-                orderPage = orderPage.filter(o -> 
-                    (status == null || o.getStatus().name().equals(status)) &&
-                    (symbol == null || o.getSymbol().equals(symbol))
-                );
+                orderPage = orderRepository.findByStatusAndSymbol(Order.OrderStatus.valueOf(status),symbol,pageable);
             } else if (status != null) {
-                orderPage = orderRepository.findAll(pageable);
-                orderPage = orderPage.filter(o -> o.getStatus().name().equals(status));
+                orderPage = orderRepository.findByStatus(Order.OrderStatus.valueOf(status),pageable);
             } else if (symbol != null) {
-                orderPage = orderRepository.findAll(pageable);
-                orderPage = orderPage.filter(o -> o.getSymbol().equals(symbol));
+                orderPage = orderRepository.findBySymbol(symbol,pageable);
             } else {
                 orderPage = orderRepository.findAll(pageable);
             }

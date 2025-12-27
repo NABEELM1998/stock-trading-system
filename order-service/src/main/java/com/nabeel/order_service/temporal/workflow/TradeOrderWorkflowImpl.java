@@ -1,16 +1,14 @@
 package com.nabeel.order_service.temporal.workflow;
 
-import com.nabeel.order_service.dto.CreateOrderRequest;
 import com.nabeel.order_service.dto.WorkflowRequest;
 import com.nabeel.order_service.dto.WorkflowResult;
-import com.nabeel.order_service.exceptions.ValidationException;
+import com.nabeel.order_service.entity.Order;
 import com.nabeel.order_service.temporal.activity.FraudCheckActivity;
 import com.nabeel.order_service.temporal.activity.OrderExecutionActivity;
 import com.nabeel.order_service.temporal.activity.OrderValidationActivity;
 import com.nabeel.order_service.temporal.activity.SettlementActivity;
 import io.temporal.activity.ActivityOptions;
 import io.temporal.common.RetryOptions;
-import io.temporal.failure.ActivityFailure;
 import io.temporal.workflow.Workflow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,7 +57,7 @@ public class TradeOrderWorkflowImpl implements TradeOrderWorkflow{
             Workflow.newActivityStub(SettlementActivity.class, settlementActivityOptions);
 
     @Override
-    public WorkflowResult executeOrder(CreateOrderRequest request) {
+    public WorkflowResult executeOrder(WorkflowRequest request) {
         LOGGER.info("validating order request");
         orderValidationActivity.validateOrder(request);
         LOGGER.info("performing fraud checks");
@@ -68,7 +66,7 @@ public class TradeOrderWorkflowImpl implements TradeOrderWorkflow{
         OrderExecutionActivity.executeOrder(request);
         LOGGER.info("proceeding with settlement");
         settlementActivity.settleOrder(request);
-
+        return new WorkflowResult(true, Order.OrderStatus.FILLED.name(),"success",request.getExecutionPrice(), request.getQuantity(), request.getFees());
 
 
         }

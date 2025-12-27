@@ -1,7 +1,7 @@
 package com.nabeel.order_service.temporal.activity;
 
-import com.nabeel.order_service.dto.CreateOrderRequest;
 import com.nabeel.order_service.dto.ExecutionResult;
+import com.nabeel.order_service.dto.WorkflowRequest;
 import com.nabeel.order_service.entity.Order;
 import com.nabeel.order_service.responses.MarketPricesResponse;
 import io.temporal.activity.Activity;
@@ -26,7 +26,7 @@ public class OrderExecutionActivityImpl implements OrderExecutionActivity {
     private String marketServiceBaseUrl;
 
     @Override
-    public ExecutionResult executeOrder(CreateOrderRequest request) {
+    public ExecutionResult executeOrder(WorkflowRequest request) {
         logger.info("Executing order");
         Activity.getExecutionContext().heartbeat("Executing order");
 
@@ -36,9 +36,9 @@ public class OrderExecutionActivityImpl implements OrderExecutionActivity {
             BigDecimal marketPrice = marketPricesResponse.getLastExecutedPrice();
             BigDecimal executionPrice = null;
             Integer filledQuantity = 0;
-            if(request.getSide() == Order.OrderSide.BUY){
+            if(Objects.equals(request.getSide(), Order.OrderSide.BUY.name())){
                 BigDecimal askPrice = marketPricesResponse.getAskPrice();
-                if(request.getOrderType() == Order.OrderType.MARKET){
+                if(Objects.equals(request.getOrderType(), Order.OrderType.MARKET.name())){
                     executionPrice = marketPricesResponse.getLastExecutedPrice();
                     filledQuantity = request.getQuantity();
                 }else {
@@ -53,7 +53,7 @@ public class OrderExecutionActivityImpl implements OrderExecutionActivity {
 
             } else {
                 BigDecimal bidPrice = marketPricesResponse.getBidPrice();
-                if(request.getOrderType() == Order.OrderType.MARKET){
+                if(Objects.equals(request.getOrderType(), Order.OrderType.MARKET.name())){
                     executionPrice = marketPricesResponse.getLastExecutedPrice();
                     filledQuantity = request.getQuantity();
                 }else {
@@ -71,7 +71,8 @@ public class OrderExecutionActivityImpl implements OrderExecutionActivity {
             BigDecimal fees = executionPrice != null ? executionPrice.multiply(BigDecimal.valueOf(filledQuantity* 0.001))  : BigDecimal.ZERO;
             logger.info("Order executed: executionPrice={}, filledQuantity={}, fees={}", 
                     executionPrice, filledQuantity, fees);
-
+            request.setExecutionPrice(executionPrice);
+            request.setFees(fees);
             return new ExecutionResult(true, executionPrice, filledQuantity, fees, 
                 String.format("Order executed at %.2f", executionPrice));
         } catch (Exception e) {

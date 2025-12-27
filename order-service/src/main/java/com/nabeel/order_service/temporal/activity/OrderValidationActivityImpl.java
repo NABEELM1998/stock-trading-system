@@ -1,7 +1,7 @@
 package com.nabeel.order_service.temporal.activity;
 
-import com.nabeel.order_service.dto.CreateOrderRequest;
 import com.nabeel.order_service.dto.MarketStatusResponse;
+import com.nabeel.order_service.dto.WorkflowRequest;
 import com.nabeel.order_service.entity.Order;
 import com.nabeel.order_service.exceptions.ValidationException;
 import io.temporal.activity.Activity;
@@ -32,7 +32,7 @@ public class OrderValidationActivityImpl implements OrderValidationActivity {
     private String marketServiceBaseUrl;
 
     @Override
-    public void validateOrder(CreateOrderRequest request) throws ValidationException {
+    public void validateOrder(WorkflowRequest request) throws ValidationException {
         logger.info("Validating order: symbol={}, quantity={}, orderType={}, limitPrice={}", 
                 request.getSymbol(), request.getQuantity(), request.getOrderType(), request.getLimitPrice());
 
@@ -45,12 +45,12 @@ public class OrderValidationActivityImpl implements OrderValidationActivity {
         }
 
         // Validate order type
-        if (request.getOrderType() == null || (request.getOrderType() != Order.OrderType.MARKET && request.getOrderType() != Order.OrderType.LIMIT )) {
+        if (request.getOrderType() == null || (!request.getOrderType().equals(Order.OrderType.MARKET.name()) && !request.getOrderType().equals(Order.OrderType.LIMIT.name()))) {
             throw new ValidationException("Invalid order type: " + request.getOrderType());
         }
 
         // Validate limit price for LIMIT orders
-        if (Order.OrderType.LIMIT == request.getOrderType()
+        if (Order.OrderType.LIMIT.name().equals(request.getOrderType())
                 && (request.getLimitPrice() == null
                 || request.getLimitPrice().compareTo(BigDecimal.ZERO) <= 0)) {
             throw new ValidationException("Limit price is required and must be positive for LIMIT orders");

@@ -1,8 +1,8 @@
 package com.nabeel.order_service.temporal.activity;
 
-import com.nabeel.order_service.dto.CreateOrderRequest;
 import com.nabeel.order_service.dto.SettlementRequest;
 import com.nabeel.order_service.dto.SettlementResult;
+import com.nabeel.order_service.dto.WorkflowRequest;
 import com.nabeel.order_service.entity.UserWallet;
 import com.nabeel.order_service.entity.UserWalletHistory;
 import com.nabeel.order_service.repository.UserWalletHistoryRepository;
@@ -30,9 +30,9 @@ public class SettlementActivityImpl implements SettlementActivity {
 
     @Override
     @Transactional
-    public SettlementResult settleOrder(CreateOrderRequest request) {
-        logger.info("Settling order: orderId={}, userId={}, side={}, quantity={}, executionPrice={}, fees={}", 
-                request.getOrderId(), request.getUserId(), request.getSide(), 
+    public SettlementResult settleOrder(WorkflowRequest request) {
+        logger.info("Settling order: orderId={}, userId={}, side={}, quantity={}, executionPrice={}, fees={}",
+                request.getOrderId(), request.getUserId(), request.getSide(),
                 request.getQuantity(), request.getExecutionPrice(), request.getFees());
 
         Activity.getExecutionContext().heartbeat("Settling order");
@@ -41,9 +41,9 @@ public class SettlementActivityImpl implements SettlementActivity {
             UserWallet wallet = walletRepository.findByUserId(request.getUserId())
                     .orElseThrow(() -> new RuntimeException("Wallet not found for user: " + request.getUserId()));
 
-            BigDecimal totalAmount = BigDecimal.valueOf(request.getExecutionPrice())
+            BigDecimal totalAmount = request.getExecutionPrice()
                     .multiply(BigDecimal.valueOf(request.getQuantity()))
-                    .add(BigDecimal.valueOf(request.getFees()));
+                    .add(request.getFees());
 
             BigDecimal balanceBefore = wallet.getBalance();
             BigDecimal balanceAfter;
@@ -56,7 +56,7 @@ public class SettlementActivityImpl implements SettlementActivity {
                 balanceAfter = balanceBefore.subtract(totalAmount);
             } else {
                 // Credit for SELL orders
-                balanceAfter = balanceBefore.add(totalAmount.subtract(BigDecimal.valueOf(request.getFees())));
+                balanceAfter = balanceBefore.add(totalAmount.subtract(request.getFees()));
             }
 
             wallet.setBalance(balanceAfter);

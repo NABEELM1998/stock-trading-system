@@ -1,7 +1,7 @@
 package com.nabeel.order_service.temporal.activity;
 
-import com.nabeel.order_service.dto.CreateOrderRequest;
 import com.nabeel.order_service.dto.FraudCheckResult;
+import com.nabeel.order_service.dto.WorkflowRequest;
 import io.temporal.activity.Activity;
 import io.temporal.spring.boot.ActivityImpl;
 import org.slf4j.Logger;
@@ -18,7 +18,7 @@ public class FraudCheckActivityImpl implements FraudCheckActivity {
     private static final Random random = new Random();
 
     @Override
-    public FraudCheckResult performFraudCheck(CreateOrderRequest request) {
+    public FraudCheckResult performFraudCheck(WorkflowRequest request) {
         logger.info("Performing fraud check for userId={}, symbol={}, quantity={}, amount={}",
                 request.getUserId(), request.getSymbol(), request.getQuantity(), request.getLimitPrice());
 
