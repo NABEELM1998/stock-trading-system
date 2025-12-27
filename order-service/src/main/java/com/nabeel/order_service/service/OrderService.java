@@ -10,6 +10,7 @@ import com.nabeel.order_service.temporal.workflow.TradeOrderWorkflow;
 import io.temporal.client.WorkflowClient;
 import io.temporal.client.WorkflowOptions;
 import io.temporal.client.WorkflowStub;
+import io.temporal.serviceclient.WorkflowServiceStubs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +37,8 @@ public class OrderService {
 
     @Autowired
     private WorkflowClient workflowClient;
+    @Autowired
+    private WorkflowServiceStubs serviceStubs;
 
     @Transactional
     public OrderResponse createOrder(CreateOrderRequest request) {
@@ -43,7 +46,7 @@ public class OrderService {
         if (userId == null) {
             throw new RuntimeException("User not authenticated");
         }
-
+            request.setUserId(userId);
         // Validate limit price for LIMIT orders
         if (request.getOrderType() == Order.OrderType.LIMIT && request.getLimitPrice() == null) {
             throw new IllegalArgumentException("Limit price is required for LIMIT orders");

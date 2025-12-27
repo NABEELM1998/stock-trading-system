@@ -1,5 +1,7 @@
 package com.nabeel.order_service.temporal.activity;
 
+import com.nabeel.order_service.dto.CreateOrderRequest;
+import com.nabeel.order_service.dto.FraudCheckResult;
 import io.temporal.activity.Activity;
 import io.temporal.spring.boot.ActivityImpl;
 import org.slf4j.Logger;
@@ -16,9 +18,9 @@ public class FraudCheckActivityImpl implements FraudCheckActivity {
     private static final Random random = new Random();
 
     @Override
-    public FraudCheckResult performFraudCheck(FraudCheckRequest request) {
-        logger.info("Performing fraud check for userId={}, symbol={}, quantity={}, amount={}", 
-                request.getUserId(), request.getSymbol(), request.getQuantity(), request.getAmount());
+    public FraudCheckResult performFraudCheck(CreateOrderRequest request) {
+        logger.info("Performing fraud check for userId={}, symbol={}, quantity={}, amount={}",
+                request.getUserId(), request.getSymbol(), request.getQuantity(), request.getLimitPrice());
 
         // Record heartbeat
         Activity.getExecutionContext().heartbeat("Performing fraud check");
@@ -30,25 +32,11 @@ public class FraudCheckActivityImpl implements FraudCheckActivity {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return new FraudCheckResult(false, "Fraud check interrupted");
+
         }
 
-        // Simulate fraud check logic
-        // In a real system, this would check against fraud detection systems
-        boolean passed = true;
-        String reason = "Fraud check passed";
-
-        // Simulate some failure scenarios
-        if (request.getAmount() != null && request.getAmount() > 1000000) {
-            passed = false;
-            reason = "Transaction amount exceeds fraud threshold";
-        } else if (request.getUserId() != null && request.getUserId() % 100 == 0) {
-            // Simulate 1% failure rate
-            passed = false;
-            reason = "Suspicious activity detected";
-        }
-
-        logger.info("Fraud check result: passed={}, reason={}", passed, reason);
-        return new FraudCheckResult(passed, reason);
+        logger.info("Fraud check result passes");
+        return new FraudCheckResult(true, "success");
     }
 }
 

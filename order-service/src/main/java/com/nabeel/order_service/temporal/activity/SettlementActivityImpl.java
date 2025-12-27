@@ -1,6 +1,8 @@
 package com.nabeel.order_service.temporal.activity;
 
-import com.nabeel.order_service.entity.Order;
+import com.nabeel.order_service.dto.CreateOrderRequest;
+import com.nabeel.order_service.dto.SettlementRequest;
+import com.nabeel.order_service.dto.SettlementResult;
 import com.nabeel.order_service.entity.UserWallet;
 import com.nabeel.order_service.entity.UserWalletHistory;
 import com.nabeel.order_service.repository.UserWalletHistoryRepository;
@@ -28,7 +30,7 @@ public class SettlementActivityImpl implements SettlementActivity {
 
     @Override
     @Transactional
-    public SettlementResult settleOrder(SettlementRequest request) {
+    public SettlementResult settleOrder(CreateOrderRequest request) {
         logger.info("Settling order: orderId={}, userId={}, side={}, quantity={}, executionPrice={}, fees={}", 
                 request.getOrderId(), request.getUserId(), request.getSide(), 
                 request.getQuantity(), request.getExecutionPrice(), request.getFees());

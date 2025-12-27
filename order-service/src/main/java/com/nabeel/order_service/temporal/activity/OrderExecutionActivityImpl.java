@@ -1,76 +1,74 @@
 package com.nabeel.order_service.temporal.activity;
 
+import com.nabeel.order_service.dto.CreateOrderRequest;
+import com.nabeel.order_service.dto.ExecutionResult;
+import com.nabeel.order_service.entity.Order;
+import com.nabeel.order_service.responses.MarketPricesResponse;
 import io.temporal.activity.Activity;
 import io.temporal.spring.boot.ActivityImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
+import java.math.BigDecimal;
+import java.util.*;
 
 @Component
 @ActivityImpl(taskQueues = "order-processing")
 public class OrderExecutionActivityImpl implements OrderExecutionActivity {
     private static final Logger logger = LoggerFactory.getLogger(OrderExecutionActivityImpl.class);
-    private static final Random random = new Random();
-    
-    // Mock market prices
-    private static final Map<String, Double> MARKET_PRICES = new HashMap<>();
-    static {
-        MARKET_PRICES.put("AAPL", 150.0);
-        MARKET_PRICES.put("TSLA", 250.0);
-        MARKET_PRICES.put("GOOGL", 140.0);
-        MARKET_PRICES.put("MSFT", 380.0);
-        MARKET_PRICES.put("AMZN", 130.0);
-        MARKET_PRICES.put("META", 320.0);
-        MARKET_PRICES.put("NVDA", 450.0);
-    }
+    @Autowired
+    private RestTemplate restTemplate;
+    @Value("${market.service.base-url}")
+    private String marketServiceBaseUrl;
 
     @Override
-    public ExecutionResult executeOrder(ExecutionRequest request) {
-        logger.info("Executing order: orderId={}, symbol={}, side={}, quantity={}, orderType={}, limitPrice={}", 
-                request.getOrderId(), request.getSymbol(), request.getSide(), 
-                request.getQuantity(), request.getOrderType(), request.getLimitPrice());
-
+    public ExecutionResult executeOrder(CreateOrderRequest request) {
+        logger.info("Executing order");
         Activity.getExecutionContext().heartbeat("Executing order");
 
         try {
-            // Get current market price
-            Double marketPrice = MARKET_PRICES.getOrDefault(request.getSymbol().toUpperCase(), 100.0);
-            
-            // Add some randomness to simulate price movement
-            double priceVariation = marketPrice * (0.99 + random.nextDouble() * 0.02); // ±1% variation
-            Double executionPrice = priceVariation;
 
-            // For LIMIT orders, check if limit price is acceptable
-            if ("LIMIT".equals(request.getOrderType())) {
-                if (request.getLimitPrice() == null) {
-                    return new ExecutionResult(false, null, 0, 0.0, "Limit price is required for LIMIT orders");
+            MarketPricesResponse marketPricesResponse = restTemplate.getForObject(marketServiceBaseUrl+"/api/v1/market/price/"+request.getSymbol(), MarketPricesResponse.class);
+            BigDecimal marketPrice = marketPricesResponse.getLastExecutedPrice();
+            BigDecimal executionPrice = null;
+            Integer filledQuantity = 0;
+            if(request.getSide() == Order.OrderSide.BUY){
+                BigDecimal askPrice = marketPricesResponse.getAskPrice();
+                if(request.getOrderType() == Order.OrderType.MARKET){
+                    executionPrice = marketPricesResponse.getLastExecutedPrice();
+                    filledQuantity = request.getQuantity();
+                }else {
+                    if(Objects.equals(request.getLimitPrice(), askPrice)){
+                        executionPrice = askPrice;
+                        filledQuantity = request.getQuantity();
+
+                    }else{
+                        return new ExecutionResult(false, null, 0, BigDecimal.ZERO, "Prices not matched");
+                    }
                 }
-                
-                if ("BUY".equals(request.getSide()) && executionPrice > request.getLimitPrice()) {
-                    return new ExecutionResult(false, null, 0, 0.0, 
-                        String.format("Market price %.2f exceeds limit price %.2f", executionPrice, request.getLimitPrice()));
-                }
-                
-                if ("SELL".equals(request.getSide()) && executionPrice < request.getLimitPrice()) {
-                    return new ExecutionResult(false, null, 0, 0.0, 
-                        String.format("Market price %.2f below limit price %.2f", executionPrice, request.getLimitPrice()));
+
+            } else {
+                BigDecimal bidPrice = marketPricesResponse.getBidPrice();
+                if(request.getOrderType() == Order.OrderType.MARKET){
+                    executionPrice = marketPricesResponse.getLastExecutedPrice();
+                    filledQuantity = request.getQuantity();
+                }else {
+
+                    if(Objects.equals(request.getLimitPrice(),bidPrice)){
+                        executionPrice = bidPrice;
+                        filledQuantity = request.getQuantity();
+                    }else {
+                        return new ExecutionResult(false, null, 0, BigDecimal.ZERO, "Prices not matched");
+                    }
+
                 }
             }
 
-            // Calculate fees (0.1% of transaction value)
-            Double totalValue = executionPrice * request.getQuantity();
-            Double fees = totalValue * 0.001;
-
-            // Simulate partial fills (90% chance of full fill, 10% chance of partial)
-            Integer filledQuantity = request.getQuantity();
-            if (random.nextDouble() < 0.1) {
-                filledQuantity = (int) (request.getQuantity() * 0.8); // 80% fill
-            }
-
+            BigDecimal fees = executionPrice != null ? executionPrice.multiply(BigDecimal.valueOf(filledQuantity* 0.001))  : BigDecimal.ZERO;
             logger.info("Order executed: executionPrice={}, filledQuantity={}, fees={}", 
                     executionPrice, filledQuantity, fees);
 
@@ -78,7 +76,7 @@ public class OrderExecutionActivityImpl implements OrderExecutionActivity {
                 String.format("Order executed at %.2f", executionPrice));
         } catch (Exception e) {
             logger.error("Error executing order", e);
-            return new ExecutionResult(false, null, 0, 0.0, "Error executing order: " + e.getMessage());
+            return new ExecutionResult(false, null, 0, BigDecimal.ZERO, "Error executing order: " + e.getMessage());
         }
     }
 }

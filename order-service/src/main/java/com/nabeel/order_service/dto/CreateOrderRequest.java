@@ -24,6 +24,8 @@ public class CreateOrderRequest {
     @NotNull(message = "Order type is required")
     private Order.OrderType orderType;
 
+    private Long userId;
+
     private BigDecimal limitPrice; // Required for LIMIT orders, null for MARKET orders
 }
 

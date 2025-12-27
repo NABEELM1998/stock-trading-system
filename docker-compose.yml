@@ -1,32 +1,31 @@
-version: "3.8"
+version: '3.7'
 
 services:
-  postgres:
-    image: postgres:15
-    environment:
-      POSTGRES_USER: temporal
-      POSTGRES_PASSWORD: temporal
-      POSTGRES_DB: temporal
-    ports:
-      - "5432:5432"
-
   temporal:
-    image: temporalio/auto-setup:1.29
+    image: temporalio/auto-setup:1.21.5
     ports:
-      - "7233:7233"
+      - "7233:7233"           # SDK connection port
     environment:
-      - DB=postgres12          # ✅ REQUIRED
-      - POSTGRES_SEEDS=postgres
+      - DB=postgresql
+      - DB_PORT=5432
       - POSTGRES_USER=temporal
-      - POSTGRES_PASSWORD=temporal
-      - POSTGRES_DB=temporal
+      - POSTGRES_PWD=temporal
+      - POSTGRES_SEEDS=postgres
     depends_on:
       - postgres
 
-  temporal-ui:
-    image: temporalio/ui:2.44.0
+  postgres:
+    image: postgres:13
+    environment:
+      - POSTGRES_USER=temporal
+      - POSTGRES_PASSWORD=temporal
     ports:
-      - "8088:8080"
+      - "5432:5432"
+
+  temporal-ui:
+    image: temporalio/ui:latest
+    ports:
+      - "8088:8080"           # Web UI
     environment:
       - TEMPORAL_ADDRESS=temporal:7233
     depends_on:
