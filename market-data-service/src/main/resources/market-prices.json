@@ -1,0 +1,26 @@
+[
+  {
+    "symbol": "AAPL",
+    "bidPrice": 150.25,
+    "askPrice": 150.30,
+    "lastExecutedPrice": 150.28
+  },
+  {
+    "symbol": "GOOGL",
+    "bidPrice": 2750.50,
+    "askPrice": 2751.00,
+    "lastExecutedPrice": 2750.75
+  },
+  {
+    "symbol": "MSFT",
+    "bidPrice": 380.15,
+    "askPrice": 380.20,
+    "lastExecutedPrice": 380.18
+  },
+  {
+    "symbol": "TSLA",
+    "bidPrice": 245.60,
+    "askPrice": 245.70,
+    "lastExecutedPrice": 245.65
+  }
+]
