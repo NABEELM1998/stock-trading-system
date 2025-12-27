@@ -153,3 +153,10 @@ stock-trading-system/
 
 This project is for educational purposes.
 
+## TODO
+
+1. Proper implementation of Temporal Workflow using saga compensation transactions
+2. Move to Gradle build tool
+3. Proper testing of Order-service
+4. Refactoring and proper exception handling
+
