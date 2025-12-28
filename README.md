@@ -22,6 +22,7 @@ This project consists of two main microservices:
 - Java 17 or higher
 - Maven 3.6+
 - Docker and Docker Compose
+- PgAdmin
 
 ## Getting Started
 
@@ -44,7 +45,7 @@ Create the database for the order service:
 
 ```bash
 # Connect to PostgreSQL
-docker exec -it stock-trading-system-postgres-1 psql -U temporal
+Open pgAdmin and connect to the local postgres instance 
 
 # Create database
 Run order-service/src/main/resources/sql/release-1.sql
