@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -26,6 +28,7 @@ public class Order {
     @Column(nullable = false, length = 10)
     private String symbol;
 
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
     private OrderSide side;
@@ -33,6 +36,7 @@ public class Order {
     @Column(nullable = false)
     private Integer quantity;
 
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private OrderType orderType;
@@ -40,6 +44,7 @@ public class Order {
     @Column(precision = 19, scale = 4)
     private BigDecimal limitPrice;
 
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default

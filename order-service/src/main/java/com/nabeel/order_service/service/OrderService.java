@@ -66,14 +66,10 @@ public class OrderService {
                 .build();
 
         order = orderRepository.save(order);
-
-        // Record initial status in history
-        recordOrderHistory(order.getOrderId(), Order.OrderStatus.PENDING, "Order created");
-
-        // Generate workflow ID
-        String workflowId = "order-workflow-" + order.getOrderId() + "-" + UUID.randomUUID().toString();
+        String workflowId = "order-workflow-" + order.getOrderId() + "-" + UUID.randomUUID();
         order.setWorkflowId(workflowId);
         order = orderRepository.save(order);
+        recordOrderHistory(order.getOrderId(), Order.OrderStatus.PENDING, "Order created");
 
         // Start Temporal workflow
         try {
@@ -94,11 +90,10 @@ public class OrderService {
                     order.getSide().name(),
                     order.getQuantity(),
                     order.getOrderType().name(),
-                    order.getLimitPrice() // ✅ keep BigDecimal
+                    order.getLimitPrice()
             );
             workflowRequest.setOrder(order);
 
-// ✅ Start asynchronously (non-blocking)
             WorkflowClient.start(workflow::executeOrder, workflowRequest);
 
 

@@ -1,6 +1,5 @@
 package com.nabeel.order_service.temporal.activity;
 
-import com.nabeel.order_service.dto.SettlementRequest;
 import com.nabeel.order_service.dto.SettlementResult;
 import com.nabeel.order_service.dto.WorkflowRequest;
 import com.nabeel.order_service.entity.UserWallet;
@@ -90,16 +89,16 @@ public class SettlementActivityImpl implements SettlementActivity {
 
     @Override
     @Transactional
-    public void compensateSettlement(SettlementRequest request) {
+    public void compensateSettlement(WorkflowRequest request) {
         logger.info("Compensating settlement for orderId={}, userId={}", request.getOrderId(), request.getUserId());
 
         try {
             UserWallet wallet = walletRepository.findByUserId(request.getUserId())
                     .orElseThrow(() -> new RuntimeException("Wallet not found for user: " + request.getUserId()));
 
-            BigDecimal totalAmount = BigDecimal.valueOf(request.getExecutionPrice())
+            BigDecimal totalAmount = request.getExecutionPrice()
                     .multiply(BigDecimal.valueOf(request.getQuantity()))
-                    .add(BigDecimal.valueOf(request.getFees()));
+                    .add(request.getFees());
 
             BigDecimal balanceBefore = wallet.getBalance();
             BigDecimal balanceAfter;
@@ -110,7 +109,7 @@ public class SettlementActivityImpl implements SettlementActivity {
                 balanceAfter = balanceBefore.add(totalAmount);
             } else {
                 // Debit back for SELL orders
-                balanceAfter = balanceBefore.subtract(totalAmount.subtract(BigDecimal.valueOf(request.getFees())));
+                balanceAfter = balanceBefore.subtract(totalAmount.subtract(request.getFees()));
             }
 
             wallet.setBalance(balanceAfter);

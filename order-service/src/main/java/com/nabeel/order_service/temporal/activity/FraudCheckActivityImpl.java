@@ -2,6 +2,7 @@ package com.nabeel.order_service.temporal.activity;
 
 import com.nabeel.order_service.dto.FraudCheckResult;
 import com.nabeel.order_service.dto.WorkflowRequest;
+import com.nabeel.order_service.exceptions.FraudCheckFailedException;
 import io.temporal.activity.Activity;
 import io.temporal.spring.boot.ActivityImpl;
 import org.slf4j.Logger;
@@ -18,7 +19,7 @@ public class FraudCheckActivityImpl implements FraudCheckActivity {
     private static final Random random = new Random();
 
     @Override
-    public FraudCheckResult performFraudCheck(WorkflowRequest request) {
+    public FraudCheckResult performFraudCheck(WorkflowRequest request) throws FraudCheckFailedException {
         logger.info("Performing fraud check for userId={}, symbol={}, quantity={}, amount={}",
                 request.getUserId(), request.getSymbol(), request.getQuantity(), request.getLimitPrice());
 
@@ -31,7 +32,8 @@ public class FraudCheckActivityImpl implements FraudCheckActivity {
             Thread.sleep(delay);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            return new FraudCheckResult(false, "Fraud check interrupted");
+            logger.error("fraud check failed orderId-{}",request.getOrderId());
+            throw new FraudCheckFailedException("fraud check failed");
 
         }
 

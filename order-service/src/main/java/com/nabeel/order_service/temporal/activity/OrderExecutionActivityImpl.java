@@ -3,6 +3,7 @@ package com.nabeel.order_service.temporal.activity;
 import com.nabeel.order_service.dto.ExecutionResult;
 import com.nabeel.order_service.dto.WorkflowRequest;
 import com.nabeel.order_service.entity.Order;
+import com.nabeel.order_service.exceptions.OrderExecutionException;
 import com.nabeel.order_service.responses.MarketPricesResponse;
 import io.temporal.activity.Activity;
 import io.temporal.spring.boot.ActivityImpl;
@@ -26,16 +27,16 @@ public class OrderExecutionActivityImpl implements OrderExecutionActivity {
     private String marketServiceBaseUrl;
 
     @Override
-    public ExecutionResult executeOrder(WorkflowRequest request) {
+    public ExecutionResult executeOrder(WorkflowRequest request) throws OrderExecutionException{
         logger.info("Executing order");
         Activity.getExecutionContext().heartbeat("Executing order");
-
-        try {
 
             MarketPricesResponse marketPricesResponse = restTemplate.getForObject(marketServiceBaseUrl+"/api/v1/market/price/"+request.getSymbol(), MarketPricesResponse.class);
             BigDecimal marketPrice = marketPricesResponse.getLastExecutedPrice();
             BigDecimal executionPrice = null;
             Integer filledQuantity = 0;
+            boolean isOrderExecutable = true;
+            String message = "";
             if(Objects.equals(request.getSide(), Order.OrderSide.BUY.name())){
                 BigDecimal askPrice = marketPricesResponse.getAskPrice();
                 if(Objects.equals(request.getOrderType(), Order.OrderType.MARKET.name())){
@@ -47,7 +48,8 @@ public class OrderExecutionActivityImpl implements OrderExecutionActivity {
                         filledQuantity = request.getQuantity();
 
                     }else{
-                        return new ExecutionResult(false, null, 0, BigDecimal.ZERO, "Prices not matched");
+                        isOrderExecutable = false;
+                        message = "Prices not matched";
                     }
                 }
 
@@ -62,10 +64,15 @@ public class OrderExecutionActivityImpl implements OrderExecutionActivity {
                         executionPrice = bidPrice;
                         filledQuantity = request.getQuantity();
                     }else {
-                        return new ExecutionResult(false, null, 0, BigDecimal.ZERO, "Prices not matched");
+                        isOrderExecutable = false;
+                        message = "Prices not matched";
                     }
 
                 }
+            }
+            if(!isOrderExecutable){
+                logger.error("Order Execution failed due to {}",message);
+                throw new OrderExecutionException(message);
             }
 
             BigDecimal fees = executionPrice != null ? executionPrice.multiply(BigDecimal.valueOf(filledQuantity* 0.001))  : BigDecimal.ZERO;
@@ -75,10 +82,7 @@ public class OrderExecutionActivityImpl implements OrderExecutionActivity {
             request.setFees(fees);
             return new ExecutionResult(true, executionPrice, filledQuantity, fees, 
                 String.format("Order executed at %.2f", executionPrice));
-        } catch (Exception e) {
-            logger.error("Error executing order", e);
-            return new ExecutionResult(false, null, 0, BigDecimal.ZERO, "Error executing order: " + e.getMessage());
-        }
+
     }
 }
 

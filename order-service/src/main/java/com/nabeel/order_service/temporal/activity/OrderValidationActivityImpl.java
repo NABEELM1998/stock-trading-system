@@ -21,10 +21,6 @@ import java.util.Set;
 @ActivityImpl(taskQueues = "order-processing")
 public class OrderValidationActivityImpl implements OrderValidationActivity {
     private static final Logger logger = LoggerFactory.getLogger(OrderValidationActivityImpl.class);
-    
-    private static final Set<String> VALID_SYMBOLS = Set.of("AAPL", "TSLA", "GOOGL", "MSFT", "AMZN", "META", "NVDA");
-    private static final LocalTime MARKET_OPEN = LocalTime.of(9, 30);
-    private static final LocalTime MARKET_CLOSE = LocalTime.of(16, 0);
 
     @Autowired
     private RestTemplate restTemplate;
@@ -55,14 +51,6 @@ public class OrderValidationActivityImpl implements OrderValidationActivity {
                 || request.getLimitPrice().compareTo(BigDecimal.ZERO) <= 0)) {
             throw new ValidationException("Limit price is required and must be positive for LIMIT orders");
         }
-
-        // Check market hours
-        LocalTime now = LocalTime.now();
-        if (now.isBefore(MARKET_OPEN) || now.isAfter(MARKET_CLOSE)) {
-            throw new ValidationException(
-                String.format("Market is closed. Trading hours: %s - %s", MARKET_OPEN, MARKET_CLOSE));
-        }
-
         // Check market status via service
         String marketStatusUrl = marketServiceBaseUrl + "/api/v1/market/status";
         boolean isMarketOpen;

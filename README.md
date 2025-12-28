@@ -107,7 +107,7 @@ curl -X POST http://localhost:8080/api/v1/auth/login \
 curl -X POST http://localhost:8080/api/v1/orders \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -d '{"symbol":"AAPL","quantity":10,"orderType":"BUY"}'
+  -d '{"symbol":"AAPL","quantity":10,"orderType":"LIMIT","side":"BUY","limitPrice":199}'
 ```
 
 4. **Get market price:**
